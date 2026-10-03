@@ -1,7 +1,4 @@
-/* Kenitra Pharmacy Site Finder — final
- * Real persistence, real geodata, no fake AI calls.
- * OSM fetch MERGES with the seed list and dedupes within 50 m.
- */
+/* Kenitra Pharmacy Site Finder — final */
 (function () {
   'use strict';
 
@@ -9,7 +6,6 @@
   const KENITRA_CENTER = [34.2520, -6.5950];
   const KENITRA_BBOX = { latMin: 34.185, latMax: 34.305, lngMin: -6.700, lngMax: -6.500 };
   const DEDUP_RADIUS_M = 50;
-
   const NOMINATIM = 'https://nominatim.openstreetmap.org';
   const OVERPASS = 'https://overpass-api.de/api/interpreter';
 
@@ -73,7 +69,6 @@
     ["Pharmacie Al Manar","Kenitra",34.2443439,-6.6169077],
     ["Pharmacie El Kods","Lot 106, Secteur G1",34.2625971,-6.6174774]
   ];
-
   let pharmacies = [];
   let radiusM = 300;
   let addMode = false;
@@ -188,7 +183,6 @@
     pharmacies = pharmacies.filter(p => p.id !== id);
     renderAll();
   }
-
   const addModeBtn = document.getElementById('addModeBtn');
   addModeBtn.addEventListener('click', () => {
     addMode = !addMode;
@@ -324,7 +318,6 @@
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
-
   function parseCoords(text) {
     text = (text || '').trim();
     const patterns = [
@@ -538,7 +531,6 @@
       listEl.appendChild(row);
     });
   }
-
   document.getElementById('fetchOsmBtn').addEventListener('click', async () => {
     const status = document.getElementById('osmStatus');
     const btn = document.getElementById('fetchOsmBtn');
@@ -585,7 +577,7 @@
           name,
           addr: addr || 'OpenStreetMap',
           lat, lng,
-          source: 'existing'
+          source: 'osm'
         });
       });
 
@@ -626,3 +618,133 @@
 
   function setSyncStatus(state, text) {
     const dot = document.getElementById('syncDot');
+    const label = document.getElementById('syncText');
+    if (!dot || !label) return;
+    dot.className = 'sync-dot ' + state;
+    label.textContent = text;
+  }
+
+  function loadState() {
+    const seedList = () => SEED_PHARMACIES.map((p, i) => ({
+      id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
+    }));
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        pharmacies = seedList();
+        setSyncStatus('ok', 'Ready. Your changes are saved in this browser.');
+        return;
+      }
+      const data = JSON.parse(raw);
+      const deletedSeedIds = Array.isArray(data.deletedSeedIds) ? data.deletedSeedIds : [];
+      const added = Array.isArray(data.addedPharmacies) ? data.addedPharmacies : [];
+
+      pharmacies = seedList()
+        .filter(p => deletedSeedIds.indexOf(p.id) === -1)
+        .concat(added);
+
+      if (data.radiusM) radiusM = data.radiusM;
+      setSyncStatus('ok', 'Restored your saved changes.');
+    } catch (err) {
+      setSyncStatus('err', "Couldn't read saved data. Starting fresh.");
+      pharmacies = seedList();
+    }
+  }
+
+  let persistTimer = null;
+  function persistState() {
+    if (persistTimer) clearTimeout(persistTimer);
+    persistTimer = setTimeout(() => {
+      try {
+        const added = pharmacies
+          .filter(p => p.source === 'added')
+          .map(p => ({ id: p.id, name: p.name, addr: p.addr, lat: p.lat, lng: p.lng }));
+        const presentSeedIds = pharmacies
+          .filter(p => p.source === 'existing' && p.id.indexOf('seed-') === 0)
+          .map(p => p.id);
+        const deletedSeedIds = SEED_IDS.filter(id => presentSeedIds.indexOf(id) === -1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          addedPharmacies: added,
+          deletedSeedIds,
+          radiusM
+        }));
+        setSyncStatus('ok', 'Saved.');
+      } catch (err) {
+        setSyncStatus('err', "Couldn't save (storage full or blocked).");
+      }
+    }, 300);
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const payload = {
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      pharmacies: pharmacies.map(p => ({
+        id: p.id, name: p.name, addr: p.addr, lat: p.lat, lng: p.lng, source: p.source
+      })),
+      radiusM
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kenitra-pharmacies-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('importFile').click();
+  });
+
+  document.getElementById('importFile').addEventListener('change', async e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!Array.isArray(data.pharmacies)) throw new Error('Bad format');
+      pharmacies = data.pharmacies.map((p, i) => ({
+        id: p.id || ('imported-' + i + '-' + Date.now()),
+        name: p.name || 'Unnamed pharmacy',
+        addr: p.addr || 'Imported',
+        lat: +p.lat, lng: +p.lng,
+        source: p.source === 'added' ? 'added' : 'existing'
+      })).filter(p => isFinite(p.lat) && isFinite(p.lng));
+      if (data.radiusM) {
+        radiusM = data.radiusM;
+        document.getElementById('radiusInput').value = radiusM;
+      }
+      renderAll();
+      const status = document.getElementById('osmStatus');
+      status.className = 'lookup-status found';
+      status.textContent = `Imported ${pharmacies.length} pharmacies.`;
+    } catch (err) {
+      const status = document.getElementById('osmStatus');
+      status.className = 'lookup-status err';
+      status.textContent = 'Import failed: not a valid export file.';
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm('Reset everything — radius, added pins, deleted pins, candidates, saved data?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    radiusM = 300;
+    document.getElementById('radiusInput').value = 300;
+    pharmacies = SEED_PHARMACIES.map((p, i) => ({
+      id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
+    }));
+    candidateLayer.clearLayers();
+    document.getElementById('candidateList').innerHTML = '';
+    document.getElementById('statCandidates').textContent = '0';
+    document.getElementById('osmStatus').textContent = '';
+    renderAll();
+    setSyncStatus('ok', 'Reset complete.');
+  });
+
+  loadState();
+  renderAll();
+})();
