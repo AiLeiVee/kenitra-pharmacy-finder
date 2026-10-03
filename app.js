@@ -637,23 +637,22 @@
   }
 
   function loadState() {
+    const seedList = () => SEED_PHARMACIES.map((p, i) => ({
+      id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
+    }));
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          pharmacies = SEED_PHARMACIES.map((p, i) => ({
-            id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
-          }));
+      if (!raw) {
+        pharmacies = seedList();
         setSyncStatus('ok', 'Ready. Your changes are saved in this browser.');
         return;
-        }
+      }
       const data = JSON.parse(raw);
       const deletedSeedIds = Array.isArray(data.deletedSeedIds) ? data.deletedSeedIds : [];
       const added = Array.isArray(data.addedPharmacies) ? data.addedPharmacies : [];
 
-      pharmacies = SEED_PHARMACIES
-        .map((p, i) => ({
-          id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
-        }))
+      pharmacies = seedList()
         .filter(p => deletedSeedIds.indexOf(p.id) === -1)
         .concat(added);
 
@@ -661,9 +660,7 @@
       setSyncStatus('ok', 'Restored your saved changes.');
     } catch (err) {
       setSyncStatus('err', "Couldn't read saved data. Starting fresh.");
-      pharmacies = SEED_PHARMACIES.map((p, i) => ({
-        id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
-      }));
+      pharmacies = seedList();
     }
   }
 
