@@ -539,7 +539,6 @@
     });
   }
 
-  // ---------- MERGE OSM pharmacies into the current list (dedupe within 50 m) ----------
   document.getElementById('fetchOsmBtn').addEventListener('click', async () => {
     const status = document.getElementById('osmStatus');
     const btn = document.getElementById('fetchOsmBtn');
@@ -569,7 +568,6 @@
         return;
       }
 
-      // Dedupe within the OSM set itself, then against the current list
       const seenKey = new Set();
       const osmCandidates = [];
       elements.forEach(el => {
@@ -612,7 +610,6 @@
     }
   });
 
-  // ---------- Restore built-in seed list ----------
   document.getElementById('restoreSeedBtn').addEventListener('click', () => {
     if (!confirm('Replace the current pharmacy list with the built-in seed list? Your added pins will be kept.')) return;
     const added = pharmacies.filter(p => p.source === 'added');
@@ -625,141 +622,7 @@
     status.textContent = `Restored ${SEED_PHARMACIES.length} built-in pharmacies.`;
   });
 
-  // ---------- Persistence ----------
   const SEED_IDS = SEED_PHARMACIES.map((_, i) => 'seed-' + i);
 
   function setSyncStatus(state, text) {
     const dot = document.getElementById('syncDot');
-    const label = document.getElementById('syncText');
-    if (!dot || !label) return;
-    dot.className = 'sync-dot ' + state;
-    label.textContent = text;
-  }
-
-  function loadState() {
-    const seedList = () => SEED_PHARMACIES.map((p, i) => ({
-      id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
-    }));
-
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        pharmacies = seedList();
-        setSyncStatus('ok', 'Ready. Your changes are saved in this browser.');
-        return;
-      }
-      const data = JSON.parse(raw);
-      const deletedSeedIds = Array.isArray(data.deletedSeedIds) ? data.deletedSeedIds : [];
-      const added = Array.isArray(data.addedPharmacies) ? data.addedPharmacies : [];
-
-      pharmacies = seedList()
-        .filter(p => deletedSeedIds.indexOf(p.id) === -1)
-        .concat(added);
-
-      if (data.radiusM) radiusM = data.radiusM;
-      setSyncStatus('ok', 'Restored your saved changes.');
-    } catch (err) {
-      setSyncStatus('err', "Couldn't read saved data. Starting fresh.");
-      pharmacies = seedList();
-    }
-  }
-
-  let persistTimer = null;
-  function persistState() {
-    if (persistTimer) clearTimeout(persistTimer);
-    persistTimer = setTimeout(() => {
-      try {
-        const added = pharmacies
-          .filter(p => p.source === 'added')
-          .map(p => ({ id: p.id, name: p.name, addr: p.addr, lat: p.lat, lng: p.lng }));
-        const presentSeedIds = pharmacies
-          .filter(p => p.source === 'existing' && p.id.indexOf('seed-') === 0)
-          .map(p => p.id);
-        const deletedSeedIds = SEED_IDS.filter(id => presentSeedIds.indexOf(id) === -1);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          addedPharmacies: added,
-          deletedSeedIds,
-          radiusM
-        }));
-        setSyncStatus('ok', 'Saved.');
-      } catch (err) {
-        setSyncStatus('err', "Couldn't save (storage full or blocked).");
-      }
-    }, 300);
-  }
-
-  // ---------- Export / Import ----------
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const payload = {
-      version: 3,
-      exportedAt: new Date().toISOString(),
-      pharmacies: pharmacies.map(p => ({
-        id: p.id, name: p.name, addr: p.addr, lat: p.lat, lng: p.lng, source: p.source
-      })),
-      radiusM
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `kenitra-pharmacies-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  document.getElementById('importBtn').addEventListener('click', () => {
-    document.getElementById('importFile').click();
-  });
-
-  document.getElementById('importFile').addEventListener('change', async e => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!Array.isArray(data.pharmacies)) throw new Error('Bad format');
-      pharmacies = data.pharmacies.map((p, i) => ({
-        id: p.id || ('imported-' + i + '-' + Date.now()),
-        name: p.name || 'Unnamed pharmacy',
-        addr: p.addr || 'Imported',
-        lat: +p.lat, lng: +p.lng,
-        source: p.source === 'added' ? 'added' : 'existing'
-      })).filter(p => isFinite(p.lat) && isFinite(p.lng));
-      if (data.radiusM) {
-        radiusM = data.radiusM;
-        document.getElementById('radiusInput').value = radiusM;
-      }
-      renderAll();
-      const status = document.getElementById('osmStatus');
-      status.className = 'lookup-status found';
-      status.textContent = `Imported ${pharmacies.length} pharmacies.`;
-    } catch (err) {
-      const status = document.getElementById('osmStatus');
-      status.className = 'lookup-status err';
-      status.textContent = 'Import failed: not a valid export file.';
-    } finally {
-      e.target.value = '';
-    }
-  });
-
-  // ---------- Reset ----------
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    if (!confirm('Reset everything — radius, added pins, deleted pins, candidates, saved data?')) return;
-    localStorage.removeItem(STORAGE_KEY);
-    radiusM = 300;
-    document.getElementById('radiusInput').value = 300;
-    pharmacies = SEED_PHARMACIES.map((p, i) => ({
-      id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
-    }));
-    candidateLayer.clearLayers();
-    document.getElementById('candidateList').innerHTML = '';
-    document.getElementById('statCandidates').textContent = '0';
-    document.getElementById('osmStatus').textContent = '';
-    renderAll();
-    setSyncStatus('ok', 'Reset complete.');
-  });
-
-  // ---------- Boot ----------
-  loadState();
-  renderAll();
-})();
