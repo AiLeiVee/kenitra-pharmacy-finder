@@ -69,6 +69,7 @@
     ["Pharmacie Al Manar","Kenitra",34.2443439,-6.6169077],
     ["Pharmacie El Kods","Lot 106, Secteur G1",34.2625971,-6.6174774]
   ];
+
   let pharmacies = [];
   let radiusM = 300;
   let addMode = false;
@@ -109,7 +110,7 @@
   function pharmIcon(color) {
     return L.divIcon({
       className: '',
-      html: `<div style="width:16px;height:16px;border-radius:50% 50% 50% 0;background:${color};transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div>`,
+      html: '<div style="width:16px;height:16px;border-radius:50% 50% 50% 0;background:' + color + ';transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);"></div>',
       iconSize: [16, 16], iconAnchor: [8, 16]
     });
   }
@@ -118,20 +119,20 @@
     markerLayer.clearLayers();
     circleLayer.clearLayers();
 
-    pharmacies.forEach(p => {
+    pharmacies.forEach(function (p) {
       const isAdded = p.source === 'added';
       const color = isAdded ? '#6E5AA8' : '#D98C2B';
       const circleColor = isAdded ? '#6E5AA8' : '#C1483A';
 
       const marker = L.marker([p.lat, p.lng], { icon: pharmIcon(color) });
-      let popup = `<b>${escapeHtml(p.name)}</b>` +
-                  `<div class="popup-coords">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div>`;
-      if (p.addr) popup += `<div style="font-size:.75rem;color:#666;margin-top:2px;">${escapeHtml(p.addr)}</div>`;
-      popup += `<button class="popup-del" data-id="${p.id}" type="button">Remove this pin</button>`;
+      let popup = '<b>' + escapeHtml(p.name) + '</b>' +
+                  '<div class="popup-coords">' + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) + '</div>';
+      if (p.addr) popup += '<div style="font-size:.75rem;color:#666;margin-top:2px;">' + escapeHtml(p.addr) + '</div>';
+      popup += '<button class="popup-del" data-id="' + p.id + '" type="button">Remove this pin</button>';
       marker.bindPopup(popup);
-      marker.on('popupopen', () => {
-        const el = document.querySelector(`.popup-del[data-id="${p.id}"]`);
-        if (el) el.addEventListener('click', () => { removePharmacy(p.id); map.closePopup(); });
+      marker.on('popupopen', function () {
+        const el = document.querySelector('.popup-del[data-id="' + p.id + '"]');
+        if (el) el.addEventListener('click', function () { removePharmacy(p.id); map.closePopup(); });
       });
       markerLayer.addLayer(marker);
 
@@ -150,134 +151,135 @@
   function updateStats() {
     document.getElementById('statTotal').textContent = pharmacies.length;
     document.getElementById('statAdded').textContent =
-      pharmacies.filter(p => p.source === 'added').length;
+      pharmacies.filter(function (p) { return p.source === 'added'; }).length;
     document.getElementById('listCount').textContent = pharmacies.length;
   }
 
   function renderList() {
     const list = document.getElementById('pharmList');
     list.innerHTML = '';
-    const sorted = pharmacies.slice().sort((a, b) => a.name.localeCompare(b.name));
-    sorted.forEach(p => {
+    const sorted = pharmacies.slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    sorted.forEach(function (p) {
       const div = document.createElement('div');
       div.className = 'pharm-item';
       div.innerHTML =
-        `<button class="jump" type="button" aria-label="Show ${escapeHtml(p.name)} on map">` +
-          `<div class="pname">${escapeHtml(p.name)}</div>` +
-          `<div class="paddr">${escapeHtml(p.addr || '')}</div>` +
-        `</button>` +
-        `<div class="tag ${p.source === 'added' ? 'added' : 'existing'}">${p.source === 'added' ? 'added' : 'listed'}</div>` +
-        `<button class="del-btn" type="button" aria-label="Delete ${escapeHtml(p.name)}" title="Delete">&times;</button>`;
-      div.querySelector('.jump').addEventListener('click', () => {
+        '<button class="jump" type="button" aria-label="Show ' + escapeHtml(p.name) + ' on map">' +
+          '<div class="pname">' + escapeHtml(p.name) + '</div>' +
+          '<div class="paddr">' + escapeHtml(p.addr || '') + '</div>' +
+        '</button>' +
+        '<div class="tag ' + (p.source === 'added' ? 'added' : 'existing') + '">' + (p.source === 'added' ? 'added' : 'listed') + '</div>' +
+        '<button class="del-btn" type="button" aria-label="Delete ' + escapeHtml(p.name) + '" title="Delete">&times;</button>';
+      div.querySelector('.jump').addEventListener('click', function () {
         map.setView([p.lat, p.lng], 16, { animate: true });
       });
-      div.querySelector('.del-btn').addEventListener('click', () => removePharmacy(p.id));
+      div.querySelector('.del-btn').addEventListener('click', function () { removePharmacy(p.id); });
       list.appendChild(div);
     });
   }
 
   function removePharmacy(id) {
-    const target = pharmacies.find(p => p.id === id);
+    const target = pharmacies.find(function (p) { return p.id === id; });
     if (!target) return;
-    if (!confirm(`Remove "${target.name}" from the map?`)) return;
-    pharmacies = pharmacies.filter(p => p.id !== id);
+    if (!confirm('Remove "' + target.name + '" from the map?')) return;
+    pharmacies = pharmacies.filter(function (p) { return p.id !== id; });
     renderAll();
   }
+
   const addModeBtn = document.getElementById('addModeBtn');
-  addModeBtn.addEventListener('click', () => {
+  addModeBtn.addEventListener('click', function () {
     addMode = !addMode;
     addModeBtn.classList.toggle('active-mode', addMode);
     addModeBtn.textContent = addMode ? 'Tap the map to place pin…' : '+ Add pharmacy on map';
     map.getContainer().style.cursor = addMode ? 'crosshair' : '';
   });
 
-  map.on('click', e => {
+  map.on('click', function (e) {
     if (!addMode) return;
     pendingLatLng = e.latlng;
-    const overlay = document.getElementById('modalOverlay');
+    const overlayEl = document.getElementById('modalOverlay');
     document.getElementById('modalCoords').textContent =
-      `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
+      e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
     document.getElementById('modalNameInput').value = '';
     const status = document.getElementById('modalLookupStatus');
     status.className = 'lookup-status busy';
     status.textContent = 'Searching OpenStreetMap…';
-    overlay.classList.remove('hidden');
+    overlayEl.classList.remove('hidden');
     document.getElementById('modalNameInput').focus();
     lookupNearbyPharmacy(e.latlng.lat, e.latlng.lng);
   });
 
-  async function lookupNearbyPharmacy(lat, lng) {
+  function lookupNearbyPharmacy(lat, lng) {
     const status = document.getElementById('modalLookupStatus');
     const nameInput = document.getElementById('modalNameInput');
     const myLatLng = pendingLatLng;
 
-    try {
-      const query = `[out:json][timeout:15];
-        (
-          node["amenity"="pharmacy"](around:100,${lat},${lng});
-          way["amenity"="pharmacy"](around:100,${lat},${lng});
-        );
-        out center tags;`;
-      const res = await fetch(OVERPASS, {
-        method: 'POST',
-        body: 'data=' + encodeURIComponent(query),
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+    const query = '[out:json][timeout:15];' +
+      '(' +
+        'node["amenity"="pharmacy"](around:100,' + lat + ',' + lng + ');' +
+        'way["amenity"="pharmacy"](around:100,' + lat + ',' + lng + ');' +
+      ');' +
+      'out center tags;';
+
+    fetch(OVERPASS, {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(query),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    }).then(function (res) {
       if (!res.ok) throw new Error('Overpass ' + res.status);
-      const data = await res.json();
+      return res.json();
+    }).then(function (data) {
       if (pendingLatLng !== myLatLng) return;
 
       const elements = data.elements || [];
       if (elements.length > 0) {
-        const withName = elements.filter(el => el.tags && el.tags.name);
-        const pick = (withName.length ? withName : elements)
-          .map(el => {
-            const elLat = el.lat != null ? el.lat : el.center && el.center.lat;
-            const elLng = el.lon != null ? el.lon : el.center && el.center.lon;
-            return { el, d: (elLat != null) ? haversine(lat, lng, elLat, elLng) : Infinity };
-          })
-          .sort((a, b) => a.d - b.d)[0];
+        const withName = elements.filter(function (el) { return el.tags && el.tags.name; });
+        const pool = withName.length ? withName : elements;
+        const pick = pool.map(function (el) {
+          const elLat = el.lat != null ? el.lat : (el.center && el.center.lat);
+          const elLng = el.lon != null ? el.lon : (el.center && el.center.lon);
+          return { el: el, d: (elLat != null) ? haversine(lat, lng, elLat, elLng) : Infinity };
+        }).sort(function (a, b) { return a.d - b.d; })[0];
 
         const t = pick.el.tags || {};
-        const name = t.name || t['name:fr'] || t['name:ar'] || '';
-        if (name) {
-          nameInput.value = name;
-          const addr = t['addr:street'] ? `, ${t['addr:street']}` : '';
+        const foundName = t.name || t['name:fr'] || t['name:ar'] || '';
+        if (foundName) {
+          nameInput.value = foundName;
+          const addr = t['addr:street'] ? ', ' + t['addr:street'] : '';
           status.className = 'lookup-status found';
-          status.textContent = `Found "${name}"${addr} (${Math.round(pick.d)} m away). Edit if needed.`;
+          status.textContent = 'Found "' + foundName + '"' + addr + ' (' + Math.round(pick.d) + ' m away). Edit if needed.';
           return;
         }
       }
 
-      const rev = await fetch(
-        `${NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`
-      );
-      if (pendingLatLng !== myLatLng) return;
-      const revData = await rev.json();
-      const a = revData.address || {};
-      const hood = a.neighbourhood || a.suburb || a.city_district || a.village || a.town;
-      status.className = 'lookup-status none';
-      status.textContent = hood
-        ? `No pharmacy found at this exact point. Nearest area: ${hood}. Enter the name manually.`
-        : 'No pharmacy found nearby in OpenStreetMap. Enter the name manually.';
-    } catch (err) {
+      return fetch(NOMINATIM + '/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=16&addressdetails=1')
+        .then(function (r) { return r.json(); })
+        .then(function (revData) {
+          if (pendingLatLng !== myLatLng) return;
+          const a = revData.address || {};
+          const hood = a.neighbourhood || a.suburb || a.city_district || a.village || a.town;
+          status.className = 'lookup-status none';
+          status.textContent = hood
+            ? 'No pharmacy found at this exact point. Nearest area: ' + hood + '. Enter the name manually.'
+            : 'No pharmacy found nearby in OpenStreetMap. Enter the name manually.';
+        });
+    }).catch(function () {
       if (pendingLatLng !== myLatLng) return;
       status.className = 'lookup-status err';
       status.textContent = 'Lookup service unavailable. Enter the name manually.';
-    }
+    });
   }
 
-  const overlay = document.getElementById('modalOverlay');
+  const overlayEl = document.getElementById('modalOverlay');
   const modalNameInput = document.getElementById('modalNameInput');
   let lastFocused = null;
 
   function closeModal() {
-    overlay.classList.add('hidden');
+    overlayEl.classList.add('hidden');
     pendingLatLng = null;
     if (lastFocused && lastFocused.focus) lastFocused.focus();
   }
 
-  document.getElementById('modalCancel').addEventListener('click', () => {
+  document.getElementById('modalCancel').addEventListener('click', function () {
     closeModal();
     if (addMode) {
       addMode = false;
@@ -287,12 +289,12 @@
     }
   });
 
-  document.getElementById('modalConfirm').addEventListener('click', () => {
+  document.getElementById('modalConfirm').addEventListener('click', function () {
     const name = modalNameInput.value.trim() || 'Unnamed pharmacy';
     if (pendingLatLng) {
       pharmacies.push({
         id: 'added-' + Date.now(),
-        name,
+        name: name,
         addr: 'Added manually',
         lat: pendingLatLng.lat,
         lng: pendingLatLng.lng,
@@ -309,15 +311,16 @@
     }
   });
 
-  overlay.addEventListener('keydown', e => {
+  overlayEl.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { document.getElementById('modalCancel').click(); return; }
     if (e.key !== 'Tab') return;
-    const focusables = overlay.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+    const focusables = overlayEl.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
     if (!focusables.length) return;
     const first = focusables[0], last = focusables[focusables.length - 1];
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
+
   function parseCoords(text) {
     text = (text || '').trim();
     const patterns = [
@@ -329,17 +332,17 @@
       /@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,
       /^(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)$/
     ];
-    for (const re of patterns) {
-      const m = text.match(re);
+    for (let i = 0; i < patterns.length; i++) {
+      const m = text.match(patterns[i]);
       if (m) {
         const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
-        if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+        if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat: lat, lng: lng };
       }
     }
     return null;
   }
 
-  document.getElementById('addFromLinkBtn').addEventListener('click', () => {
+  document.getElementById('addFromLinkBtn').addEventListener('click', function () {
     const statusEl = document.getElementById('linkStatus');
     const raw = document.getElementById('linkInput').value.trim();
     const name = document.getElementById('linkNameInput').value.trim();
@@ -361,7 +364,7 @@
 
     pharmacies.push({
       id: 'added-' + Date.now(),
-      name, addr: 'Added via link',
+      name: name, addr: 'Added via link',
       lat: coords.lat, lng: coords.lng, source: 'added'
     });
     renderAll();
@@ -369,118 +372,129 @@
     document.getElementById('linkInput').value = '';
     document.getElementById('linkNameInput').value = '';
     statusEl.className = 'lookup-status found';
-    statusEl.textContent = `Added "${name}" at ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}.`;
+    statusEl.textContent = 'Added "' + name + '" at ' + coords.lat.toFixed(5) + ', ' + coords.lng.toFixed(5) + '.';
   });
 
-  document.getElementById('redrawBtn').addEventListener('click', () => {
+  document.getElementById('redrawBtn').addEventListener('click', function () {
     const v = parseInt(document.getElementById('radiusInput').value, 10);
     if (!isNaN(v) && v > 0) { radiusM = v; renderAll(); }
   });
 
   document.getElementById('findBtn').addEventListener('click', findCandidates);
 
-  async function findCandidates() {
+  function findCandidates() {
     const btn = document.getElementById('findBtn');
     const listEl = document.getElementById('candidateList');
     candidateLayer.clearLayers();
     btn.disabled = true;
     btn.textContent = 'Scanning grid…';
 
-    const stepM = 150;
-    const latStep = stepM / M_PER_DEG_LAT;
-    const lngStep = stepM / M_PER_DEG_LNG;
-    const valid = [];
-    for (let lat = KENITRA_BBOX.latMin; lat <= KENITRA_BBOX.latMax; lat += latStep) {
-      for (let lng = KENITRA_BBOX.lngMin; lng <= KENITRA_BBOX.lngMax; lng += lngStep) {
-        let minDist = Infinity;
-        for (let i = 0; i < pharmacies.length; i++) {
-          const d = haversine(lat, lng, pharmacies[i].lat, pharmacies[i].lng);
-          if (d < minDist) minDist = d;
-          if (minDist < radiusM) break;
+    setTimeout(function () {
+      const stepM = 150;
+      const latStep = stepM / M_PER_DEG_LAT;
+      const lngStep = stepM / M_PER_DEG_LNG;
+      const valid = [];
+      for (let lat = KENITRA_BBOX.latMin; lat <= KENITRA_BBOX.latMax; lat += latStep) {
+        for (let lng = KENITRA_BBOX.lngMin; lng <= KENITRA_BBOX.lngMax; lng += lngStep) {
+          let minDist = Infinity;
+          for (let i = 0; i < pharmacies.length; i++) {
+            const d = haversine(lat, lng, pharmacies[i].lat, pharmacies[i].lng);
+            if (d < minDist) minDist = d;
+            if (minDist < radiusM) break;
+          }
+          if (minDist >= radiusM) valid.push({ lat: lat, lng: lng, minDist: minDist });
         }
-        if (minDist >= radiusM) valid.push({ lat, lng, minDist });
       }
-    }
 
-    if (valid.length === 0) {
-      listEl.innerHTML = '<div class="empty-note">No open spots found. Try a smaller radius.</div>';
-      document.getElementById('statCandidates').textContent = '0';
-      btn.disabled = false;
-      btn.textContent = 'Find valid locations';
-      return;
-    }
+      if (valid.length === 0) {
+        listEl.innerHTML = '<div class="empty-note">No open spots found. Try a smaller radius.</div>';
+        document.getElementById('statCandidates').textContent = '0';
+        btn.disabled = false;
+        btn.textContent = 'Find valid locations';
+        return;
+      }
 
-    const contextR = Math.max(radiusM * 3, radiusM + 600);
-    valid.forEach(c => {
-      c.contextR = contextR;
-      c.nearbyCount = pharmacies.reduce((n, p) =>
-        n + (haversine(c.lat, c.lng, p.lat, p.lng) <= contextR ? 1 : 0), 0);
-    });
+      const contextR = Math.max(radiusM * 3, radiusM + 600);
+      valid.forEach(function (c) {
+        c.contextR = contextR;
+        c.nearbyCount = pharmacies.reduce(function (n, p) {
+          return n + (haversine(c.lat, c.lng, p.lat, p.lng) <= contextR ? 1 : 0);
+        }, 0);
+      });
 
-    const between = valid.filter(c => c.nearbyCount >= 2);
-    const pool = between.length > 0 ? between : valid;
+      const between = valid.filter(function (c) { return c.nearbyCount >= 2; });
+      const pool = between.length > 0 ? between : valid;
 
-    pool.sort((a, b) => a.minDist - b.minDist);
-    const clusterR = Math.max(radiusM, 350);
-    const chosen = [];
-    for (const cand of pool) {
-      if (chosen.some(c => haversine(cand.lat, cand.lng, c.lat, c.lng) < clusterR)) continue;
-      chosen.push(cand);
-      if (chosen.length >= 18) break;
-    }
+      pool.sort(function (a, b) { return a.minDist - b.minDist; });
+      const clusterR = Math.max(radiusM, 350);
+      const chosen = [];
+      for (let j = 0; j < pool.length; j++) {
+        const cand = pool[j];
+        let tooClose = false;
+        for (let k = 0; k < chosen.length; k++) {
+          if (haversine(cand.lat, cand.lng, chosen[k].lat, chosen[k].lng) < clusterR) { tooClose = true; break; }
+        }
+        if (!tooClose) {
+          chosen.push(cand);
+          if (chosen.length >= 18) break;
+        }
+      }
 
-    btn.textContent = 'Measuring building density…';
-    try {
-      await measureDensity(chosen);
-    } catch (err) {
-      chosen.forEach(c => { c.buildings = null; c.density = 'unknown'; });
-    }
+      btn.textContent = 'Measuring building density…';
 
-    chosen.sort((a, b) => {
-      const ab = a.buildings == null ? -1 : a.buildings;
-      const bb = b.buildings == null ? -1 : b.buildings;
-      if (bb !== ab) return bb - ab;
-      return b.minDist - a.minDist;
-    });
+      measureDensity(chosen).catch(function () {
+        chosen.forEach(function (c) { c.buildings = null; c.density = 'unknown'; });
+      }).then(function () {
+        chosen.sort(function (a, b) {
+          const ab = a.buildings == null ? -1 : a.buildings;
+          const bb = b.buildings == null ? -1 : b.buildings;
+          if (bb !== ab) return bb - ab;
+          return b.minDist - a.minDist;
+        });
 
-    renderCandidates(chosen);
-    document.getElementById('statCandidates').textContent = chosen.length;
-    btn.disabled = false;
-    btn.textContent = 'Find valid locations';
+        renderCandidates(chosen);
+        document.getElementById('statCandidates').textContent = chosen.length;
+        btn.disabled = false;
+        btn.textContent = 'Find valid locations';
+      });
+    }, 30);
   }
 
-  async function measureDensity(candidates) {
+  function measureDensity(candidates) {
+    if (candidates.length === 0) return Promise.resolve();
     const DENSITY_R = 250;
-    const clauses = candidates.map(c =>
-      `node["building"](around:${DENSITY_R},${c.lat},${c.lng});` +
-      `way["building"](around:${DENSITY_R},${c.lat},${c.lng});`
-    ).join('\n');
-    const query = `[out:json][timeout:25];\n(\n${clauses}\n);\nout center;`;
+    const clauses = candidates.map(function (c) {
+      return 'node["building"](around:' + DENSITY_R + ',' + c.lat + ',' + c.lng + ');' +
+             'way["building"](around:' + DENSITY_R + ',' + c.lat + ',' + c.lng + ');';
+    }).join('\n');
+    const query = '[out:json][timeout:25];\n(\n' + clauses + '\n);\nout center;';
 
-    const res = await fetch(OVERPASS, {
+    return fetch(OVERPASS, {
       method: 'POST',
       body: 'data=' + encodeURIComponent(query),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-    if (!res.ok) throw new Error('Overpass ' + res.status);
-    const data = await res.json();
-    const els = data.elements || [];
+    }).then(function (res) {
+      if (!res.ok) throw new Error('Overpass ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      const els = data.elements || [];
 
-    candidates.forEach(c => { c.buildings = 0; });
+      candidates.forEach(function (c) { c.buildings = 0; });
 
-    els.forEach(el => {
-      const lat = el.lat != null ? el.lat : (el.center && el.center.lat);
-      const lng = el.lon != null ? el.lon : (el.center && el.center.lon);
-      if (lat == null) return;
-      candidates.forEach(c => {
-        if (haversine(c.lat, c.lng, lat, lng) <= DENSITY_R) c.buildings++;
+      els.forEach(function (el) {
+        const lat = el.lat != null ? el.lat : (el.center && el.center.lat);
+        const lng = el.lon != null ? el.lon : (el.center && el.center.lon);
+        if (lat == null) return;
+        candidates.forEach(function (c) {
+          if (haversine(c.lat, c.lng, lat, lng) <= DENSITY_R) c.buildings++;
+        });
       });
-    });
 
-    candidates.forEach(c => {
-      if (c.buildings >= 120) c.density = 'high';
-      else if (c.buildings >= 50) c.density = 'medium';
-      else c.density = 'low';
+      candidates.forEach(function (c) {
+        if (c.buildings >= 120) c.density = 'high';
+        else if (c.buildings >= 50) c.density = 'medium';
+        else c.density = 'low';
+      });
     });
   }
 
@@ -498,60 +512,62 @@
       return;
     }
     listEl.innerHTML = '';
-    chosen.forEach((c, i) => {
+    chosen.forEach(function (c, i) {
       const marker = L.circleMarker([c.lat, c.lng], {
         radius: 8, color: '#2F8F5B', weight: 2, fillColor: '#5BC98A', fillOpacity: 0.85
       });
-      const bldgTxt = c.buildings == null ? 'building data unavailable' : `${c.buildings} buildings within 250 m`;
+      const bldgTxt = c.buildings == null ? 'building data unavailable' : c.buildings + ' buildings within 250 m';
       marker.bindPopup(
-        `<b>Candidate site ${i + 1}</b>` +
-        `<div class="popup-coords">${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}</div>` +
-        `<div style="font-size:.75rem;margin-top:2px;">${Math.round(c.minDist)} m clear of nearest pharmacy</div>` +
-        `<div style="font-size:.75rem;color:#666;">${c.nearbyCount} pharmacies within ~${Math.round(c.contextR)} m</div>` +
-        `<div style="font-size:.75rem;color:#666;">${bldgTxt} — ${densityLabel(c.density)}</div>`
+        '<b>Candidate site ' + (i + 1) + '</b>' +
+        '<div class="popup-coords">' + c.lat.toFixed(5) + ', ' + c.lng.toFixed(5) + '</div>' +
+        '<div style="font-size:.75rem;margin-top:2px;">' + Math.round(c.minDist) + ' m clear of nearest pharmacy</div>' +
+        '<div style="font-size:.75rem;color:#666;">' + c.nearbyCount + ' pharmacies within ~' + Math.round(c.contextR) + ' m</div>' +
+        '<div style="font-size:.75rem;color:#666;">' + bldgTxt + ' — ' + densityLabel(c.density) + '</div>'
       );
       candidateLayer.addLayer(marker);
 
       const row = document.createElement('div');
       row.className = 'candidate-item';
       row.innerHTML =
-        `<button class="jump" type="button" aria-label="Show candidate ${i + 1} on map">` +
-          `<div class="cname">#${i + 1} — ${Math.round(c.minDist)} m clear</div>` +
-          `<div class="cmeta">${bldgTxt} — ${densityLabel(c.density)}<br>` +
-          `boxed by ${c.nearbyCount} nearby pharmacies<br>` +
-          `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}</div>` +
-        `</button>` +
-        `<a href="https://www.google.com/maps?q=${c.lat},${c.lng}" target="_blank" rel="noopener">Open in Google Maps</a>`;
-      row.querySelector('.jump').addEventListener('mouseenter', () => marker.setStyle({ radius: 11 }));
-      row.querySelector('.jump').addEventListener('mouseleave', () => marker.setStyle({ radius: 8 }));
-      row.querySelector('.jump').addEventListener('click', () => {
+        '<button class="jump" type="button" aria-label="Show candidate ' + (i + 1) + ' on map">' +
+          '<div class="cname">#' + (i + 1) + ' — ' + Math.round(c.minDist) + ' m clear</div>' +
+          '<div class="cmeta">' + bldgTxt + ' — ' + densityLabel(c.density) + '<br>' +
+          'boxed by ' + c.nearbyCount + ' nearby pharmacies<br>' +
+          c.lat.toFixed(5) + ', ' + c.lng.toFixed(5) + '</div>' +
+        '</button>' +
+        '<a href="https://www.google.com/maps?q=' + c.lat + ',' + c.lng + '" target="_blank" rel="noopener">Open in Google Maps</a>';
+      row.querySelector('.jump').addEventListener('mouseenter', function () { marker.setStyle({ radius: 11 }); });
+      row.querySelector('.jump').addEventListener('mouseleave', function () { marker.setStyle({ radius: 8 }); });
+      row.querySelector('.jump').addEventListener('click', function () {
         map.setView([c.lat, c.lng], 16, { animate: true });
         marker.openPopup();
       });
       listEl.appendChild(row);
     });
   }
-  document.getElementById('fetchOsmBtn').addEventListener('click', async () => {
+
+  document.getElementById('fetchOsmBtn').addEventListener('click', function () {
     const status = document.getElementById('osmStatus');
     const btn = document.getElementById('fetchOsmBtn');
     btn.disabled = true;
     status.className = 'lookup-status busy';
     status.textContent = 'Querying OpenStreetMap…';
 
-    try {
-      const query = `[out:json][timeout:25];
-        (
-          node["amenity"="pharmacy"](${KENITRA_BBOX.latMin},${KENITRA_BBOX.lngMin},${KENITRA_BBOX.latMax},${KENITRA_BBOX.lngMax});
-          way["amenity"="pharmacy"](${KENITRA_BBOX.latMin},${KENITRA_BBOX.lngMin},${KENITRA_BBOX.latMax},${KENITRA_BBOX.lngMax});
-        );
-        out center tags;`;
-      const res = await fetch(OVERPASS, {
-        method: 'POST',
-        body: 'data=' + encodeURIComponent(query),
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+    const query = '[out:json][timeout:25];' +
+      '(' +
+        'node["amenity"="pharmacy"](' + KENITRA_BBOX.latMin + ',' + KENITRA_BBOX.lngMin + ',' + KENITRA_BBOX.latMax + ',' + KENITRA_BBOX.lngMax + ');' +
+        'way["amenity"="pharmacy"](' + KENITRA_BBOX.latMin + ',' + KENITRA_BBOX.lngMin + ',' + KENITRA_BBOX.latMax + ',' + KENITRA_BBOX.lngMax + ');' +
+      ');' +
+      'out center tags;';
+
+    fetch(OVERPASS, {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(query),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    }).then(function (res) {
       if (!res.ok) throw new Error('Overpass ' + res.status);
-      const data = await res.json();
+      return res.json();
+    }).then(function (data) {
       const elements = data.elements || [];
 
       if (elements.length === 0) {
@@ -560,30 +576,33 @@
         return;
       }
 
-      const seenKey = new Set();
+      const seenKey = {};
       const osmCandidates = [];
-      elements.forEach(el => {
+      elements.forEach(function (el) {
         const lat = el.lat != null ? el.lat : (el.center && el.center.lat);
         const lng = el.lon != null ? el.lon : (el.center && el.center.lon);
         if (lat == null || lng == null) return;
         const key = lat.toFixed(5) + ',' + lng.toFixed(5);
-        if (seenKey.has(key)) return;
-        seenKey.add(key);
+        if (seenKey[key]) return;
+        seenKey[key] = true;
         const t = el.tags || {};
         const name = t.name || t['name:fr'] || t['name:ar'] || 'Unnamed pharmacy';
         const addr = [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' ');
         osmCandidates.push({
           id: 'osm-' + el.type + '-' + el.id,
-          name,
+          name: name,
           addr: addr || 'OpenStreetMap',
-          lat, lng,
+          lat: lat,
+          lng: lng,
           source: 'osm'
         });
       });
 
       let added = 0, skipped = 0;
-      osmCandidates.forEach(cand => {
-        const dup = pharmacies.some(p => haversine(p.lat, p.lng, cand.lat, cand.lng) < DEDUP_RADIUS_M);
+      osmCandidates.forEach(function (cand) {
+        const dup = pharmacies.some(function (p) {
+          return haversine(p.lat, p.lng, cand.lat, cand.lng) < DEDUP_RADIUS_M;
+        });
         if (dup) { skipped++; return; }
         pharmacies.push(cand);
         added++;
@@ -592,29 +611,29 @@
       renderAll();
       status.className = 'lookup-status found';
       status.textContent = added > 0
-        ? `Merged ${added} new pharmac${added === 1 ? 'y' : 'ies'} from OpenStreetMap. ${skipped} skipped as duplicates (within ${DEDUP_RADIUS_M} m of an existing pin).`
-        : `No new pharmacies found — all ${skipped} OSM results were already on your map.`;
-    } catch (err) {
+        ? 'Merged ' + added + ' new pharmac' + (added === 1 ? 'y' : 'ies') + ' from OpenStreetMap. ' + skipped + ' skipped as duplicates (within ' + DEDUP_RADIUS_M + ' m of an existing pin).'
+        : 'No new pharmacies found — all ' + skipped + ' OSM results were already on your map.';
+    }).catch(function () {
       status.className = 'lookup-status err';
       status.textContent = 'Could not reach OpenStreetMap. Try again in a moment.';
-    } finally {
+    }).then(function () {
       btn.disabled = false;
-    }
+    });
   });
 
-  document.getElementById('restoreSeedBtn').addEventListener('click', () => {
+  document.getElementById('restoreSeedBtn').addEventListener('click', function () {
     if (!confirm('Replace the current pharmacy list with the built-in seed list? Your added pins will be kept.')) return;
-    const added = pharmacies.filter(p => p.source === 'added');
-    pharmacies = SEED_PHARMACIES.map((p, i) => ({
-      id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
-    })).concat(added);
+    const added = pharmacies.filter(function (p) { return p.source === 'added'; });
+    pharmacies = SEED_PHARMACIES.map(function (p, i) {
+      return { id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing' };
+    }).concat(added);
     renderAll();
     const status = document.getElementById('osmStatus');
     status.className = 'lookup-status found';
-    status.textContent = `Restored ${SEED_PHARMACIES.length} built-in pharmacies.`;
+    status.textContent = 'Restored ' + SEED_PHARMACIES.length + ' built-in pharmacies.';
   });
 
-  const SEED_IDS = SEED_PHARMACIES.map((_, i) => 'seed-' + i);
+  const SEED_IDS = SEED_PHARMACIES.map(function (_, i) { return 'seed-' + i; });
 
   function setSyncStatus(state, text) {
     const dot = document.getElementById('syncDot');
@@ -624,11 +643,13 @@
     label.textContent = text;
   }
 
-  function loadState() {
-    const seedList = () => SEED_PHARMACIES.map((p, i) => ({
-      id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
-    }));
+  function seedList() {
+    return SEED_PHARMACIES.map(function (p, i) {
+      return { id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing' };
+    });
+  }
 
+  function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
@@ -640,9 +661,9 @@
       const deletedSeedIds = Array.isArray(data.deletedSeedIds) ? data.deletedSeedIds : [];
       const added = Array.isArray(data.addedPharmacies) ? data.addedPharmacies : [];
 
-      pharmacies = seedList()
-        .filter(p => deletedSeedIds.indexOf(p.id) === -1)
-        .concat(added);
+      pharmacies = seedList().filter(function (p) {
+        return deletedSeedIds.indexOf(p.id) === -1;
+      }).concat(added);
 
       if (data.radiusM) radiusM = data.radiusM;
       setSyncStatus('ok', 'Restored your saved changes.');
@@ -655,19 +676,18 @@
   let persistTimer = null;
   function persistState() {
     if (persistTimer) clearTimeout(persistTimer);
-    persistTimer = setTimeout(() => {
+    persistTimer = setTimeout(function () {
       try {
-        const added = pharmacies
-          .filter(p => p.source === 'added')
-          .map(p => ({ id: p.id, name: p.name, addr: p.addr, lat: p.lat, lng: p.lng }));
-        const presentSeedIds = pharmacies
-          .filter(p => p.source === 'existing' && p.id.indexOf('seed-') === 0)
-          .map(p => p.id);
-        const deletedSeedIds = SEED_IDS.filter(id => presentSeedIds.indexOf(id) === -1);
+        const added = pharmacies.filter(function (p) { return p.source === 'added'; })
+          .map(function (p) { return { id: p.id, name: p.name, addr: p.addr, lat: p.lat, lng: p.lng }; });
+        const presentSeedIds = pharmacies.filter(function (p) {
+          return p.source === 'existing' && p.id.indexOf('seed-') === 0;
+        }).map(function (p) { return p.id; });
+        const deletedSeedIds = SEED_IDS.filter(function (id) { return presentSeedIds.indexOf(id) === -1; });
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           addedPharmacies: added,
-          deletedSeedIds,
-          radiusM
+          deletedSeedIds: deletedSeedIds,
+          radiusM: radiusM
         }));
         setSyncStatus('ok', 'Saved.');
       } catch (err) {
@@ -676,42 +696,43 @@
     }, 300);
   }
 
-  document.getElementById('exportBtn').addEventListener('click', () => {
+  document.getElementById('exportBtn').addEventListener('click', function () {
     const payload = {
       version: 3,
       exportedAt: new Date().toISOString(),
-      pharmacies: pharmacies.map(p => ({
-        id: p.id, name: p.name, addr: p.addr, lat: p.lat, lng: p.lng, source: p.source
-      })),
-      radiusM
+      pharmacies: pharmacies.map(function (p) {
+        return { id: p.id, name: p.name, addr: p.addr, lat: p.lat, lng: p.lng, source: p.source };
+      }),
+      radiusM: radiusM
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `kenitra-pharmacies-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = 'kenitra-pharmacies-' + new Date().toISOString().slice(0, 10) + '.json';
     a.click();
     URL.revokeObjectURL(url);
   });
 
-  document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importBtn').addEventListener('click', function () {
     document.getElementById('importFile').click();
   });
 
-  document.getElementById('importFile').addEventListener('change', async e => {
+  document.getElementById('importFile').addEventListener('change', function (e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    try {
-      const text = await file.text();
+    file.text().then(function (text) {
       const data = JSON.parse(text);
       if (!Array.isArray(data.pharmacies)) throw new Error('Bad format');
-      pharmacies = data.pharmacies.map((p, i) => ({
-        id: p.id || ('imported-' + i + '-' + Date.now()),
-        name: p.name || 'Unnamed pharmacy',
-        addr: p.addr || 'Imported',
-        lat: +p.lat, lng: +p.lng,
-        source: p.source === 'added' ? 'added' : 'existing'
-      })).filter(p => isFinite(p.lat) && isFinite(p.lng));
+      pharmacies = data.pharmacies.map(function (p, i) {
+        return {
+          id: p.id || ('imported-' + i + '-' + Date.now()),
+          name: p.name || 'Unnamed pharmacy',
+          addr: p.addr || 'Imported',
+          lat: +p.lat, lng: +p.lng,
+          source: p.source === 'added' ? 'added' : 'existing'
+        };
+      }).filter(function (p) { return isFinite(p.lat) && isFinite(p.lng); });
       if (data.radiusM) {
         radiusM = data.radiusM;
         document.getElementById('radiusInput').value = radiusM;
@@ -719,24 +740,22 @@
       renderAll();
       const status = document.getElementById('osmStatus');
       status.className = 'lookup-status found';
-      status.textContent = `Imported ${pharmacies.length} pharmacies.`;
-    } catch (err) {
+      status.textContent = 'Imported ' + pharmacies.length + ' pharmacies.';
+    }).catch(function () {
       const status = document.getElementById('osmStatus');
       status.className = 'lookup-status err';
       status.textContent = 'Import failed: not a valid export file.';
-    } finally {
+    }).then(function () {
       e.target.value = '';
-    }
+    });
   });
 
-  document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('resetBtn').addEventListener('click', function () {
     if (!confirm('Reset everything — radius, added pins, deleted pins, candidates, saved data?')) return;
     localStorage.removeItem(STORAGE_KEY);
     radiusM = 300;
     document.getElementById('radiusInput').value = 300;
-    pharmacies = SEED_PHARMACIES.map((p, i) => ({
-      id: 'seed-' + i, name: p[0], addr: p[1], lat: p[2], lng: p[3], source: 'existing'
-    }));
+    pharmacies = seedList();
     candidateLayer.clearLayers();
     document.getElementById('candidateList').innerHTML = '';
     document.getElementById('statCandidates').textContent = '0';
